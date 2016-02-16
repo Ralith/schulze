@@ -4,6 +4,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Text.Parsec
+import System.Environment
 import System.IO
 import System.Exit
 import Data.Map.Strict (Map)
@@ -15,7 +16,10 @@ import Parse (input)
 
 main :: IO ()
 main = do
-  x <- parse input "stdin" <$> T.getContents
+  args <- getArgs
+  x <- case args of
+         [] -> parse input "stdin" <$> T.getContents
+         [file] -> parse input file <$> T.readFile file
   case x of
     Left err -> T.hPutStrLn stderr "parse error:" >> hPutStrLn stderr (show err) >> exitWith (ExitFailure 1)
     Right (vs, opts) -> do
