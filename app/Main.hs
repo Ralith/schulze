@@ -23,7 +23,7 @@ main = do
       T.putStrLn $ printVotes vs
       T.putStrLn ""
       T.putStrLn $ header "Results"
-      T.putStrLn $ printResults $ judgeSet margin (prefCountSet $ aggregate opts (M.elems vs))
+      T.putStrLn $ printResults $ judgeSet winning (prefCountSet $ aggregate opts (M.elems vs))
 
 header :: Text -> Text
 header title = T.unlines [T.replicate 16 "=", title, T.replicate 16 "="]

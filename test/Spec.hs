@@ -20,6 +20,10 @@ example rel expected vs = assertEqual "vote winner mismatch" expected (map (T.he
     options = S.fromList . toOptions . concat . concatMap snd $ vs
     count = foldr (tallyVote options) (emptyCount options) $ concatMap (\(n, vs') -> replicate n (vote (map toOptions vs'))) vs
 
+e7data = [(6, ["a", "b", "c", "d"]), (8, ["ab", "cd"]), (8, ["ac", "bd"]), (18, ["ac", "d", "b"]), (8, ["acd", "b"]), (40, ["b", "acd"])
+         ,(4, ["c", "b", "d", "a"]), (9, ["c", "d", "a", "b"]), (8, ["cd", "ab"]), (14, ["d", "a", "b", "c"]), (11, ["d", "b", "c", "a"])
+         ,(4, ["d", "c", "a", "b"])]
+
 tests :: [Test.Framework.Test]
 tests = hUnitTestToTests $ TestList
   [ "trivial count" ~: prefCountSet (M.fromList [("1",(S.fromList ["A","B"], [vote [["A"]]]))])
@@ -47,11 +51,9 @@ tests = hUnitTestToTests $ TestList
                            [(3, ["a", "d", "e", "b", "c", "f"]), (3, ["b", "f", "e", "c", "d", "a"]), (4, ["c", "a", "b", "f", "d", "e"])
                            ,(1, ["d", "b", "c", "e", "f", "a"]), (4, ["d", "e", "f", "a", "b", "c"]), (2, ["e", "c", "b", "d", "f", "a"])
                            ,(2, ["f", "a", "c", "d", "b", "e"])]
-  , "Example 7 (margin)" ~:
-    example margin "a"
-            [(6, ["a", "b", "c", "d"]), (8, ["ab", "cd"]), (8, ["ac", "bd"]), (18, ["ac", "d", "b"]), (8, ["acd", "b"]), (40, ["b", "acd"])
-            ,(4, ["c", "b", "d", "a"]), (9, ["c", "d", "a", "b"]), (8, ["cd", "ab"]), (14, ["d", "a", "b", "c"]), (11, ["d", "b", "c", "a"])
-            ,(4, ["d", "c", "a", "b"])]
+  , "Example 7 (margin)" ~: example margin "a" e7data
+  , "Example 7 (ratio)" ~: example ratio "b" e7data
+  , "Example 7 (winning votes)" ~: example winning "d" e7data
   ]
 
 main :: IO ()

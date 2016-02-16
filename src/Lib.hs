@@ -5,6 +5,8 @@ module Lib
   , ballot
 
   , margin
+  , ratio
+  , winning
 
   , Voter(..)
   , Vote
@@ -120,6 +122,25 @@ type Relation = ((Word, Word) -> (Word, Word) -> Bool)
 
 margin :: Relation
 margin (ef, fe) (gh, hg) = (toInteger ef - toInteger fe) > (toInteger gh - toInteger hg)
+
+ratio :: Relation
+ratio (ef, fe) (gh, hg) =
+  or [ ef > fe && gh <= hg
+     , ef >= fe && gh < hg
+     , ef * hg > fe * gh
+     , ef > gh && fe <= hg
+     , ef >= gh && fe < hg
+     ]
+
+winning :: Relation
+winning (ef, fe) (gh, hg) =
+  or [ ef > fe && gh <= hg
+     , ef >= fe && gh < hg
+     , ef > fe && gh > hg && ef > gh
+     , ef > fe && gh > hg && ef == gh && fe < hg
+     , ef < fe && gh < hg && fe < hg
+     , ef < fe && gh < hg && fe == hg && ef > gh
+     ]
 
 minD :: (a -> a -> Bool) -> a -> a -> a
 minD d x y = if not (x `d` y) then x else y
