@@ -18,6 +18,7 @@ module Lib
   , emptyCount
   , tallyVote
   , prefCountSet
+  , Relation
   , judge
   , judgeSet
   , aggregate
