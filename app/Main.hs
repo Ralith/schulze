@@ -19,7 +19,7 @@ main = do
   case x of
     Left err -> T.hPutStrLn stderr "parse error:" >> hPutStrLn stderr (show err) >> exitWith (ExitFailure 1)
     Right (vs, opts) -> do
-      T.putStrLn $ header "Votes"
+      T.putStrLn $ header (T.concat [(T.pack . show . M.size $ vs), " voters"])
       T.putStrLn $ printVotes vs
       T.putStrLn ""
       T.putStrLn $ header "Results"
