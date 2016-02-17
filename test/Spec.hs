@@ -7,18 +7,19 @@ import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.CaseInsensitive as CI
+import Data.Maybe (fromJust)
+import Data.List (findIndex)
 
-import Lib
-
-ballots :: [[(Question, RawVote)]] -> [Ballot]
-ballots = map (ballot . M.fromList)
+import Schulze
+import Condorcet
 
 example :: Relation -> [Char] -> [(Int, [[Char]])] -> Assertion
-example rel expected vs = assertEqual "vote winner mismatch" expected (map (T.head . optionName) . fst $ judge rel (S.toList options) count)
+example rel expected vs =
+  assertEqual "vote winner mismatch" expected (map (\(Option i) -> options !! fromIntegral i) $ judge rel optCount prefs)
   where
-    toOptions = map (Option . CI.mk . T.singleton)
-    options = S.fromList . toOptions . concat . concatMap snd $ vs
-    count = foldr (tallyVote options) (emptyCount options) $ concatMap (\(n, vs') -> replicate n (vote (map toOptions vs'))) vs
+    options = S.toList . S.fromList . concat . concatMap snd $ vs
+    optCount = fromIntegral (length options) :: Word
+    prefs = count optCount . concatMap (\(n, b) -> replicate n (mkVote $ map (map (\x -> Option . fromIntegral . fromJust $ findIndex (== x) options)) b)) $ vs
 
 e7data = [(6, ["a", "b", "c", "d"]), (8, ["ab", "cd"]), (8, ["ac", "bd"]), (18, ["ac", "d", "b"]), (8, ["acd", "b"]), (40, ["b", "acd"])
          ,(4, ["c", "b", "d", "a"]), (9, ["c", "d", "a", "b"]), (8, ["cd", "ab"]), (14, ["d", "a", "b", "c"]), (11, ["d", "b", "c", "a"])
@@ -26,15 +27,13 @@ e7data = [(6, ["a", "b", "c", "d"]), (8, ["ab", "cd"]), (8, ["ac", "bd"]), (18, 
 
 tests :: [Test.Framework.Test]
 tests = hUnitTestToTests $ TestList
-  [ "trivial count" ~: prefCountSet (M.fromList [("1",(S.fromList ["A","B"], [vote [["A"]]]))])
-    ~=? M.fromList [("1", (S.fromList ["A", "B"], PrefCount . M.fromList $ [(("A", "B"), 1), (("B", "A"), 0)]))]
-  , "Example 1" ~: example margin "D"
-                           [(8, ["A", "C", "D", "B"])
-                           ,(2, ["B", "A", "D", "C"])
-                           ,(4, ["C", "D", "B", "A"])
-                           ,(4, ["D", "B", "A", "C"])
-                           ,(3, ["D", "C", "B", "A"])
-                           ]
+  [ "Example 1" ~: example margin "D"
+                            [(8, ["A", "C", "D", "B"])
+                            ,(2, ["B", "A", "D", "C"])
+                            ,(4, ["C", "D", "B", "A"])
+                            ,(4, ["D", "B", "A", "C"])
+                            ,(3, ["D", "C", "B", "A"])
+                            ]
   , "Example 2" ~: example margin "BD"
                            [(3, ["A", "B", "C", "D"])
                            ,(2, ["C", "B", "D", "A"])
