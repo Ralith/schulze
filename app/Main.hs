@@ -86,7 +86,7 @@ formatTable rowLabels colLabels arr =
                   ]
 
 printCounts :: Parse.Result -> Vector Count -> Text
-printCounts r = T.intercalate "\n" . map (\(q, c) -> T.concat [questionName r q, "\n", formatCount q c]) . zip (questions r) . V.toList
+printCounts r = T.intercalate "\n\n" . map (\(q, c) -> T.concat [questionName r q, "\n", formatCount q c]) . zip (questions r) . V.toList
   where
     formatCount :: Question -> Count -> Text
     formatCount q (Count c) =
