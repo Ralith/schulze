@@ -21,16 +21,20 @@ import Parse
 main :: IO ()
 main = do
   args <- getArgs
-  x <- case args of
-         [] -> parse input "stdin" <$> T.getContents
-         [file] -> parse input file <$> T.readFile file
-         _ -> error "too many arguments"
-  case x of
+  case args of
+    [] -> main' "stdin" =<< T.getContents
+    [file] -> main' file =<< T.readFile file
+    _ -> T.hPutStrLn stderr "too many arguments (expected nothing or filename)" >> exitWith (ExitFailure 1)
+
+main' :: String -> Text -> IO ()
+main' file contents =
+  case parse input file contents of
     Left err -> T.hPutStrLn stderr "parse error:" >> hPutStrLn stderr (show err) >> exitWith (ExitFailure 1)
     Right r -> do
       let qcount = length (questions r)
           optCounts = V.generate qcount (\i -> fromIntegral . length . options r $ fromIntegral i)
-      T.putStrLn $ header (T.concat [(T.pack . show . length $ voters r), " voters, ", (T.pack . show $ qcount), " questions"])
+      T.putStrLn $ header (T.concat [(T.pack . show . length $ voters r), " voters, "
+                                    , (T.pack . show $ qcount), " question", if qcount /= 1 then "s" else ""])
       T.putStrLn $ printVotes r
       T.putStrLn ""
       T.putStrLn $ header "Pairwise preference counts"
@@ -38,7 +42,7 @@ main = do
       T.putStrLn $ printCounts r counts
       T.putStrLn ""
       T.putStrLn $ header "Results"
-      T.putStrLn $ printResults r . V.map (uncurry (judge winning)) . V.zip optCounts $ counts
+      T.putStrLn $ printResults r (V.zip optCounts counts)
 
 header :: Text -> Text
 header title = T.unlines [bar, title, bar]
@@ -89,9 +93,13 @@ printCounts r = T.intercalate "\n" . map (\(q, c) -> T.concat [questionName r q,
       let labels = (map (optionName r q) (options r q))
       in formatTable labels labels (listArray (bounds c) (map (T.pack . show) (elems c)))
 
-printResults :: Parse.Result -> Vector [Option] -> Text
-printResults r = T.intercalate "\n" . map (\(q, os) -> T.concat [questionName r q, " ", formatOpts q os]) . zip (questions r) . V.toList
-  where
-    formatOpts _ [] = "no votes"
-    formatOpts q [x] = optionName r q x
-    formatOpts q xs = T.append "tie: " . T.intercalate ", " . map (optionName r q) $ xs
+printResults :: Parse.Result -> Vector (Word, Count) -> Text
+printResults r =
+  T.intercalate "\n" . map (\(q, oc) -> T.concat [questionName r q, " ", uncurry (formatResult r q) oc]) . zip (questions r) . V.toList
+
+formatResult :: Result -> Question -> Word -> Count -> Text
+formatResult r q opts c =
+  case judge winning opts c of
+    [] -> "no votes"
+    [x] -> optionName r q x
+    xs -> T.concat ["tie: ", T.intercalate ", " (map (optionName r q) xs)]

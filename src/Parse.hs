@@ -9,6 +9,7 @@ module Parse ( input
              , questionName
              , options
              , optionName
+             , Parse.dropOption
              ) where
 
 import Data.Map.Strict (Map)
@@ -81,6 +82,20 @@ optionName r i (Option j) = (optionNames r ! fromIntegral i) ! fromIntegral j
 
 vote :: Result -> Voter -> Ballot
 vote r i = votes r ! fromIntegral i
+
+dropOption :: Question -> Option -> Result -> Result
+dropOption q o r =
+  r { votes = V.map (\(Ballot b) -> Ballot . M.mapWithKey (\k vs@(Vote vs') ->
+                                                             if k == q
+                                                                then Vote $ map (filter (/= o)) vs'
+                                                                else vs)
+                                                          $ b)
+                    (votes r)
+    , optionNames = V.imap (\i v -> if i == fromIntegral q
+                                       then (V.++) (V.take (fromIntegral o) v) (V.drop (fromIntegral o + 1) v)
+                                       else v)
+                           (optionNames r)
+    }
 
 mkBallot :: Map (CI Text) Question -> Vector (Map (CI Text) Option)  -> Map (CI Text) [[(CI Text)]] -> Ballot
 mkBallot qs os = Ballot.ballot . M.fromList

@@ -2,13 +2,14 @@ module Condorcet
        ( Option(..)
        , optionID
 
-       , Vote
+       , Vote(..)
        , RawVote
        , mkVote
        , voteRanks
 
        , Count(..)
        , count
+       , dropOption
        ) where
 
 import Data.Set (Set)
@@ -54,3 +55,10 @@ newtype Count = Count (UArray (Option, Option) Word)
 count :: Word -> [Vote] -> Count
 count optCount vs = Count $ accumArray (\x () -> succ x) 0 ((Option 0, Option 0), (Option (optCount-1), Option (optCount-1)))
                                        (map (\i -> (i, ())) . concatMap (votePrefs optCount) $ vs)
+
+dropOption :: Option -> Count -> Count
+dropOption o (Count c) =
+   Count $ array (let (low, (ih, jh)) = bounds c in (low, (pred ih, pred jh)))
+                 [((if i > o then pred i else i
+                   ,if j > o then pred j else j
+                   ), c ! (i, j)) | (i, j) <- indices c, i /= o && j /= o]

@@ -38,19 +38,19 @@ minD d x y = if not (x `d` y) then x else y
 judge :: Relation -> Word -> Count -> [Option]
 judge relation optCnt (Count n) = runST $ do
   let lastOpt = Option (optCnt-1)
-      options = [Option 0..lastOpt]
+      optlist = [Option 0..lastOpt]
   p <- newArray_ ((Option 0, Option 0), (lastOpt, lastOpt))
                  :: ST s (STArray s (Option, Option) (Word, Word))
   preds <- newArray_ ((Option 0, Option 0), (lastOpt, lastOpt))
                      :: ST s (STArray s (Option, Option) Option)
-  forM_ options $ \i ->
-    forM_ options $ \j ->
+  forM_ optlist $ \i ->
+    forM_ optlist $ \j ->
       when (i /= j) $ do
         writeArray p (i,j) (n ! (i,j), n ! (j,i))
         writeArray preds (i,j) i
-  forM_ options $ \i ->
-    forM_ options $ \j -> when (i /= j) $
-      forM_ options $ \k -> when (i /= k && j /= k) $ do
+  forM_ optlist $ \i ->
+    forM_ optlist $ \j -> when (i /= j) $
+      forM_ optlist $ \k -> when (i /= k && j /= k) $ do
         pdjk <- readArray p (j,k)
         pdji <- readArray p (j,i)
         pdik <- readArray p (i,k)
@@ -60,10 +60,10 @@ judge relation optCnt (Count n) = runST $ do
           writeArray preds (j,k) =<< readArray preds (i,k)
   winner <- newArray (Option 0, lastOpt) True
                      :: ST s (STArray s Option Bool)
-  forM_ options $ \i ->
-    forM_ options $ \j -> when (i /= j) $ do
+  forM_ optlist $ \i ->
+    forM_ optlist $ \j -> when (i /= j) $ do
       pdji <- readArray p (j, i)
       pdij <- readArray p (i, j)
       when (pdji `relation` pdij) $ writeArray winner i False
   flags <- getElems winner
-  pure $ map snd . filter fst $ zip flags options
+  pure $ map snd . filter fst $ zip flags optlist
