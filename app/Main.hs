@@ -101,5 +101,12 @@ formatResult :: Result -> Question -> Word -> Count -> Text
 formatResult r q opts c =
   case judge winning opts c of
     [] -> "no votes"
-    [x] -> optionName r q x
-    xs -> T.concat ["tie: ", T.intercalate ", " (map (optionName r q) xs)]
+    xs@(_:rest) -> T.concat [ T.intercalate ", " (map (optionName r q) xs)
+                            , let winningSize = fromIntegral $ length xs in
+                              if opts > winningSize
+                                 then T.append "; " $
+                                      formatResult (foldr (Parse.dropOption q) r xs) q
+                                                   (opts - fromIntegral winningSize)
+                                                   (foldr Condorcet.dropOption c xs)
+                                 else ""
+                            ]
