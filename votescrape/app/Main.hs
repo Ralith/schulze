@@ -36,7 +36,7 @@ main = do
     [startURI] ->
       case parsePostURI startURI of
         Left err -> hPutStr stderr "not a valid post URL: " >> hPutStrLn stderr err >>  printUsage >> exitFailure
-        Right start -> process =<< getVotes start Nothing
+        Right start -> begin start Nothing
     [startURI, endURI] ->
       case (parsePostURI startURI, parsePostURI endURI) of
         (Left err, _) -> do
@@ -49,11 +49,21 @@ main = do
           hPutStrLn stderr err
           printUsage
           exitFailure
-        (Right start, Right end) -> process =<< getVotes start (Just end)
+        (Right start, Right end) -> begin start (Just end)
     _ -> printUsage >> exitFailure
+
+begin :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO ()
+begin start end = do
+  putStr "fetching posts..."
+  hFlush stdout
+  r <- getVotes start end
+  putStrLn " done"
+  process r
 
 process :: Either Status ([(PostData Text)], [String]) -> IO ()
 process (Right (vs, errs)) = do
+  putStr "scraping votes..."
+  hFlush stdout
   forM_ errs $ \err -> do
     hPutStrLn stderr $ "error scraping post: " ++ err
   unless (null errs) $ hPutStrLn stderr "continuing"
@@ -70,6 +80,7 @@ process (Right (vs, errs)) = do
       (_, Right x) -> pure ((CI.mk $ v ^. postAuthor, x):clean)
       ) [] parsed
   let bs = mkBallotSet . M.fromList $ clean
+  putStrLn " done"
   T.putStr $ printCount bs
 process (Left err) = do
   hPutStr stderr $ "server returned HTTP " ++ show (statusCode err) ++ ": "
