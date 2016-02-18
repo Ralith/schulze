@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     VoteCount.Ballot, VoteCount.Condorcet, VoteCount.Schulze, VoteCount.Parse
+  exposed-modules:     VoteCount.Ballot, VoteCount.Condorcet, VoteCount.Schulze, VoteCount.Parse, VoteCount.Format
   build-depends:       base >= 4.7 && < 5, text, containers, parsec, array, case-insensitive, vector
   ghc-options:         -Wall
   default-language:    Haskell2010

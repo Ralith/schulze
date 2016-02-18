@@ -1,4 +1,4 @@
-module VoteCount.Parse (voteLine, ballot, input) where
+module VoteCount.Parse (voteLine, anonBallot, ballot, input) where
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
@@ -27,13 +27,19 @@ voteLine = (do
   pure $ (CI.mk . T.pack $ q, map (map (CI.mk . T.strip . T.pack)) ps)
   ) <?> "vote (e.g. \"2 A,B;C;D,E\")"
 
+anonBallot :: Parser (Map (CI Text) [[CI Text]])
+anonBallot = (do
+  vs <- sepEndBy1 voteLine endOfLine
+  pure $ M.fromList vs
+  ) <?> "ballot (one vote per line)"
+
 -- voter, question to preferences
 ballot :: Parser (CI Text, Map (CI Text) [[CI Text]])
 ballot = (do
   name <- manyTill (noneOf "\r\n") endOfLine
   hspaces
-  vs <- sepEndBy1 voteLine endOfLine
-  pure $ (CI.mk . T.strip . T.pack $ name, M.fromList vs)
+  vs <- anonBallot
+  pure $ (CI.mk . T.strip . T.pack $ name, vs)
   ) <?> "ballot (voter name followed by one vote per line)"
 
 input :: Parser BallotSet

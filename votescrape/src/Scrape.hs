@@ -20,8 +20,6 @@ import Network.HTTP.Client
 import Network.HTTP.Types.Status
 import Network.URI
 
-import System.IO
-
 import Text.HTML.TagSoup
 
 newtype Thread = Thread { _thread :: Word64 }
@@ -63,12 +61,19 @@ getVote post =
     voteLines :: [Text]
     voteLines = takeWhile (not . T.null) . dropWhile (not . (== flag) . T.toCaseFold) . map T.strip . T.lines $ post ^. postBody
 
-getPosts :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status [(Post, PostData [Tag Text])])
+getVotes :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status ([PostData Text], [String]))
+getVotes start end =
+  (_Right._1 %~ (\x -> (traverse %~ (getVote . (postBody %~ bolded) . snd)) x ^.. folded._Just)) <$> getPosts start end
+
+getPosts :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status ([(Post, PostData [Tag Text])], [String]))
 getPosts start end = do
   mgr <- newManager defaultManagerSettings
-  ps <- fmap (filter (\(p, _) -> p > (start ^. _2) && maybe True ((p <=) . (^._2)) end))
-          <$> getPosts' mgr (start ^. _1) ((^. _1) <$> end)
-  pure ps
+  allPosts <- getPosts' mgr (start ^. _1) ((^. _1) <$> end)
+  let ps = fmap (filter (\(p, _) -> p > (start ^. _2) && maybe True ((p <=) . (^._2)) end) . rights) allPosts
+  pure $ case (ps, fmap lefts allPosts) of
+           (Left err, _) -> Left err
+           (Right ls, Right errs) -> Right (ls, errs)
+           _ -> error "impossible: getPosts"
 
 tagAttribs :: Tag a -> [Attribute a]
 tagAttribs (TagOpen _ xs) = xs
@@ -84,20 +89,16 @@ hasClass' c t = isJust (join $ find (==c) . T.split (==' ') <$> lookup "class" t
 isPost :: Tag Text -> Bool
 isPost tag = hasClass "post" tag && fromAttrib "id" tag /= "post"
 
--- TODO: Remove IO from library code
-getPosts' :: Manager -> ThreadPage -> Maybe ThreadPage -> IO (Either Status [(Post, PostData [Tag Text])])
+getPosts' :: Manager -> ThreadPage -> Maybe ThreadPage -> IO (Either Status [Either String (Post, PostData [Tag Text])])
 getPosts' mgr currentPage endPage = do
   page <- getPage mgr currentPage
-  putStrLn $ "got page " ++ show (currentPage ^. tpPage)
   case page of
     Left err -> pure (Left err)
     Right tags -> do
       let posts = map parsePost . partitions isPost $ tags
-      forM_ (lefts posts) $ \err -> hPutStrLn stderr $ "parse failure: " ++ err
-      let posts' = rights posts
       if Just currentPage == endPage || fromIntegral (length posts) < (currentPage ^. tpPerPage)
-         then pure (Right posts')
-         else (fmap (posts' ++)) <$> getPosts' mgr (currentPage & tpPage %~ succ) endPage
+         then pure (Right posts)
+         else (fmap (posts ++)) <$> getPosts' mgr (currentPage & tpPage %~ succ) endPage
 
 parsePost :: [Tag Text] -> Either String (Post, PostData [Tag Text])
 parsePost [] = error "parsePost: impossible" -- partitions guarantees nonempty
