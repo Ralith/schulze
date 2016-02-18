@@ -1,4 +1,4 @@
-module Condorcet
+module VoteCount.Condorcet
        ( Option(..)
        , optionID
 

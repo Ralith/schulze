@@ -1,4 +1,4 @@
-module Schulze where
+module VoteCount.Schulze where
 
 import Data.Array.MArray
 import Data.Array.ST
@@ -6,7 +6,7 @@ import Control.Monad
 import Control.Monad.ST
 import Data.Array.IArray
 
-import Condorcet
+import VoteCount.Condorcet
 
 type Relation = ((Word, Word) -> (Word, Word) -> Bool)
 

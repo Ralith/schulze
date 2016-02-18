@@ -13,10 +13,10 @@ import qualified Data.Vector as V
 import Data.Array.IArray
 import Data.Foldable
 
-import Condorcet
-import Schulze
-import Ballot
-import Parse
+import VoteCount.Condorcet as Condorcet
+import VoteCount.Schulze
+import VoteCount.Ballot as Ballot
+import VoteCount.Parse
 
 main :: IO ()
 main = do
@@ -24,12 +24,12 @@ main = do
   case args of
     [] -> main' "stdin" =<< T.getContents
     [file] -> main' file =<< T.readFile file
-    _ -> T.hPutStrLn stderr "too many arguments (expected nothing or filename)" >> exitWith (ExitFailure 1)
+    _ -> T.hPutStrLn stderr "too many arguments (expected nothing or filename)" >> exitFailure
 
 main' :: String -> Text -> IO ()
 main' file contents =
   case parse input file contents of
-    Left err -> T.hPutStrLn stderr "parse error:" >> hPutStrLn stderr (show err) >> exitWith (ExitFailure 1)
+    Left err -> T.hPutStrLn stderr "parse error:" >> hPutStrLn stderr (show err) >> exitFailure
     Right r -> do
       let qcount = length (questions r)
           optCounts = V.generate qcount (\i -> fromIntegral . length . options r $ fromIntegral i)
@@ -49,8 +49,8 @@ header title = T.unlines [bar, title, bar]
   where
   bar = T.replicate 32 "="
 
-printVotes :: Parse.Result -> Text
-printVotes r = T.intercalate "\n\n" . map (uncurry formatBallot) $ zip vs (map (Parse.vote r) vs)
+printVotes :: BallotSet -> Text
+printVotes r = T.intercalate "\n\n" . map (uncurry formatBallot) $ zip vs (map (vote r) vs)
   where
     vs = voters r
     formatBallot v b = T.concat [voterName r v, "\n", T.intercalate "\n" . map (uncurry formatVote) . M.toList . ballotVotes $ b]
@@ -85,7 +85,7 @@ formatTable rowLabels colLabels arr =
                                               [colMin..colMax])
                   ]
 
-printCounts :: Parse.Result -> Vector Count -> Text
+printCounts :: BallotSet -> Vector Count -> Text
 printCounts r = T.intercalate "\n\n" . map (\(q, c) -> T.concat [questionName r q, "\n", formatCount q c]) . zip (questions r) . V.toList
   where
     formatCount :: Question -> Count -> Text
@@ -93,20 +93,20 @@ printCounts r = T.intercalate "\n\n" . map (\(q, c) -> T.concat [questionName r 
       let labels = (map (optionName r q) (options r q))
       in formatTable labels labels (listArray (bounds c) (map (T.pack . show) (elems c)))
 
-printResults :: Parse.Result -> Vector (Word, Count) -> Text
+printResults :: BallotSet -> Vector (Word, Count) -> Text
 printResults r =
   T.intercalate "\n" . map (\(q, oc) -> T.concat [questionName r q, " ", uncurry (formatResult r q) oc]) . zip (questions r) . V.toList
 
-formatResult :: Result -> Question -> Word -> Count -> Text
+formatResult :: BallotSet -> Question -> Word -> Count -> Text
 formatResult r q opts c =
   case judge winning opts c of
     [] -> "no votes"
-    xs@(_:rest) -> T.concat [ T.intercalate ", " (map (optionName r q) xs)
-                            , let winningSize = fromIntegral $ length xs in
-                              if opts > winningSize
-                                 then T.append "; " $
-                                      formatResult (foldr (Parse.dropOption q) r xs) q
-                                                   (opts - fromIntegral winningSize)
-                                                   (foldr Condorcet.dropOption c xs)
-                                 else ""
-                            ]
+    xs -> T.concat [ T.intercalate ", " (map (optionName r q) xs)
+                     , let winningSize = fromIntegral $ length xs in
+                       if opts > winningSize
+                          then T.append "; " $
+                               formatResult (foldr (Ballot.dropOption q) r xs) q
+                                            (opts - fromIntegral winningSize)
+                                            (foldr Condorcet.dropOption c xs)
+                          else ""
+                     ]

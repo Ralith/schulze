@@ -2,16 +2,14 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit
 
-import qualified Data.Map.Strict as M
-import Data.Set (Set)
 import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.CaseInsensitive as CI
 import Data.Maybe (fromJust)
 import Data.List (findIndex)
+import Text.Parsec (parse)
 
-import Schulze
-import Condorcet
+import VoteCount.Schulze
+import VoteCount.Condorcet
+import qualified VoteCount.Parse as Parse
 
 example :: Relation -> [Char] -> [(Int, [[Char]])] -> Assertion
 example rel expected vs =
@@ -21,6 +19,7 @@ example rel expected vs =
     optCount = fromIntegral (length options) :: Word
     prefs = count optCount . concatMap (\(n, b) -> replicate n (mkVote $ map (map (\x -> Option . fromIntegral . fromJust $ findIndex (== x) options)) b)) $ vs
 
+e7data :: [(Int, [[Char]])]
 e7data = [(6, ["a", "b", "c", "d"]), (8, ["ab", "cd"]), (8, ["ac", "bd"]), (18, ["ac", "d", "b"]), (8, ["acd", "b"]), (40, ["b", "acd"])
          ,(4, ["c", "b", "d", "a"]), (9, ["c", "d", "a", "b"]), (8, ["cd", "ab"]), (14, ["d", "a", "b", "c"]), (11, ["d", "b", "c", "a"])
          ,(4, ["d", "c", "a", "b"])]
@@ -53,6 +52,10 @@ tests = hUnitTestToTests $ TestList
   , "Example 7 (margin)" ~: example margin "a" e7data
   , "Example 7 (ratio)" ~: example ratio "b" e7data
   , "Example 7 (winning votes)" ~: example winning "d" e7data
+  , "well-formed vote parsing" ~:
+      Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "1 A, Plan Tran; B"
+  , "mangled vote parsing" ~:
+      Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "1 A   ,, , Plan Tran,  ; ; B;;;"
   ]
 
 main :: IO ()
