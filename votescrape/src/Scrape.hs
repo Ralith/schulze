@@ -3,6 +3,7 @@ module Scrape where
 
 import Control.Lens
 import Control.Monad
+import Control.Concurrent.Async
 import Data.Foldable
 import Data.List.Split
 import Data.Map (Map)
@@ -68,7 +69,18 @@ getVotes start end =
 getPosts :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status ([(Post, PostData [Tag Text])], [String]))
 getPosts start end = do
   mgr <- newManager defaultManagerSettings
-  allPosts <- getPosts' mgr (start ^. _1) ((^. _1) <$> end)
+  allPosts <-
+    case end of
+      Nothing -> getPosts' mgr (start ^. _1)
+      Just e -> do
+        results <- mapConcurrently (getPagePosts mgr) $ map (\x -> tpPage .~ x $ start ^. _1)
+                                                            [start ^. _1.tpPage .. e ^. _1.tpPage]
+        pure $ foldr (\r xs ->
+                       case (r, xs) of
+                         (_, Left _) -> xs
+                         (x@(Left _), _) -> x
+                         (Right x, Right xs') -> Right (x ++ xs')
+                     ) (Right []) results
   let ps = fmap (filter (\(p, _) -> p > (start ^. _2) && maybe True ((p <=) . (^._2)) end) . rights) allPosts
   pure $ case (ps, fmap lefts allPosts) of
            (Left err, _) -> Left err
@@ -89,16 +101,21 @@ hasClass' c t = isJust (join $ find (==c) . T.split (==' ') <$> lookup "class" t
 isPost :: Tag Text -> Bool
 isPost tag = hasClass "post" tag && fromAttrib "id" tag /= "post"
 
-getPosts' :: Manager -> ThreadPage -> Maybe ThreadPage -> IO (Either Status [Either String (Post, PostData [Tag Text])])
-getPosts' mgr currentPage endPage = do
+getPosts' :: Manager -> ThreadPage -> IO (Either Status [Either String (Post, PostData [Tag Text])])
+getPosts' mgr currentPage = do
   page <- getPage mgr currentPage
   case page of
     Left err -> pure (Left err)
     Right tags -> do
       let posts = map parsePost . partitions isPost $ tags
-      if Just currentPage == endPage || fromIntegral (length posts) < (currentPage ^. tpPerPage)
+      if fromIntegral (length posts) < (currentPage ^. tpPerPage)
          then pure (Right posts)
-         else (fmap (posts ++)) <$> getPosts' mgr (currentPage & tpPage %~ succ) endPage
+         else (fmap (posts ++)) <$> getPosts' mgr (currentPage & tpPage %~ succ)
+
+getPagePosts :: Manager -> ThreadPage -> IO (Either Status [Either String (Post, PostData [Tag Text])])
+getPagePosts mgr page = do
+  x <- fmap (map parsePost . partitions isPost) <$> getPage mgr page
+  pure x
 
 parsePost :: [Tag Text] -> Either String (Post, PostData [Tag Text])
 parsePost [] = error "parsePost: impossible" -- partitions guarantees nonempty

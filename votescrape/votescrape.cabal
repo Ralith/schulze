@@ -16,7 +16,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Scrape
   build-depends:       base >= 4.7 && < 5, text, containers, vector, array, lens, split
-                     , http-client, http-types, network-uri, tagsoup
+                     , http-client, http-types, network-uri, tagsoup, async
   ghc-options:         -Wall
   default-language:    Haskell2010
   default-extensions:  GeneralizedNewtypeDeriving, OverloadedStrings
