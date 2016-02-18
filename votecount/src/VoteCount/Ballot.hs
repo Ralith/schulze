@@ -58,7 +58,7 @@ data BallotSet = BallotSet { bsVoterNames :: Vector Text -- voter index
                            }
 
 voters :: BallotSet -> [Voter]
-voters r = map Voter [0 .. fromIntegral $ V.length (bsVoterNames r) - 1]
+voters r = take (V.length $ bsVoterNames r) [0..]
 
 votes :: BallotSet -> Vector Ballot
 votes = bsVotes
@@ -67,13 +67,13 @@ voterName :: BallotSet -> Voter -> Text
 voterName r (Voter i) = bsVoterNames r ! fromIntegral i
 
 questions :: BallotSet -> [Question]
-questions r = map Question [0 .. fromIntegral $ V.length (bsQuestionNames r) - 1]
+questions r = take (V.length $ bsQuestionNames r) [0..]
 
 questionName :: BallotSet -> Question -> Text
 questionName r i = bsQuestionNames r ! fromIntegral i
 
 options :: BallotSet -> Question -> [Option]
-options r i = map Option [0 .. fromIntegral $ V.length (bsOptionNames r ! fromIntegral i) - 1]
+options r i = take (V.length $ bsOptionNames r ! fromIntegral i) [0..]
 
 optionName :: BallotSet -> Question -> Option -> Text
 optionName r i (Option j) = (bsOptionNames r ! fromIntegral i) ! fromIntegral j
