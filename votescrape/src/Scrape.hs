@@ -149,15 +149,19 @@ parsePostURI u =
   case parseURI u of
     Nothing -> Left "malformed URI"
     Just u' ->
-      let opts = queryOpts (uriQuery u') in
-      case ( decimal <$> M.lookup "threadid" opts
-           , maybe (Right 40) decimal $ M.lookup "perpage" opts
-           , decimal <$> M.lookup "pagenumber" opts
-           , _2 %~ decimal $ splitAt 5 (uriFragment u')
-           ) of
-        (Just (Right tid), Right pp, Just (Right page), ("#post", Right pid)) ->
-          Right (ThreadPage (Thread tid) pp page, Post pid)
-        _ -> Left "missing or malformed parameters"
+      case uriRegName <$> uriAuthority u' of
+        Just "forums.somethingawful.com" ->
+          let opts = queryOpts (uriQuery u') in
+          case ( decimal <$> M.lookup "threadid" opts
+               , maybe (Right 40) decimal $ M.lookup "perpage" opts
+               , decimal <$> M.lookup "pagenumber" opts
+               , _2 %~ decimal $ splitAt 5 (uriFragment u')
+               ) of
+            (Just (Right tid), Right pp, Just (Right page), ("#post", Right pid)) ->
+              Right (ThreadPage (Thread tid) pp page, Post pid)
+            _ -> Left "missing or malformed parameters"
+        Just x -> Left $ "unsupported host"
+        _ -> Left "malformed URI"
 
 decimal :: Integral a => String -> Either String a
 decimal t = case T.decimal (T.pack t) of
