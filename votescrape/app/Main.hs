@@ -6,16 +6,13 @@ import qualified Data.CaseInsensitive as CI
 import Data.Foldable
 import qualified Data.Map as M
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Text.Encoding.Error (lenientDecode)
 import Data.Text.Lazy.Encoding (decodeUtf8With)
-import qualified Data.Vector as V
 import System.Environment
 import System.Exit
 import System.IO
 
-import Text.HTML.TagSoup
 import Text.Parsec (parse)
 
 import Network.HTTP.Types.Status
@@ -26,7 +23,6 @@ import Control.Monad
 import VoteCount.Parse (anonBallot)
 import VoteCount.Ballot
 import VoteCount.Format
-import VoteCount.Condorcet
 
 usage :: String
 usage = "<start url> [end url]"
