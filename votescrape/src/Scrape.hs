@@ -4,6 +4,8 @@ module Scrape where
 import Control.Lens
 import Control.Monad
 import Control.Concurrent.Async
+import Control.Concurrent.QSem
+import Control.Exception
 import Data.Foldable
 import Data.List.Split
 import Data.Map (Map)
@@ -73,8 +75,10 @@ getPosts start end = do
     case end of
       Nothing -> getPosts' mgr (start ^. _1)
       Just e -> do
-        results <- mapConcurrently (getPagePosts mgr) $ map (\x -> tpPage .~ x $ start ^. _1)
-                                                            [start ^. _1.tpPage .. e ^. _1.tpPage]
+        sem <- newQSem 2 -- SA DoS protection kicks in if this is too large
+        results <- mapConcurrently (\x -> bracket (waitQSem sem) (const (signalQSem sem)) (const (getPagePosts mgr x))) $
+          map (\x -> tpPage .~ x $ start ^. _1)
+              [start ^. _1.tpPage .. e ^. _1.tpPage]
         pure $ foldr (\r xs ->
                        case (r, xs) of
                          (_, Left _) -> xs
