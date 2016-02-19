@@ -17,6 +17,8 @@ executable votescrape-gui
   main-is:             Main.hs
   other-modules:       Paths_votescrape_gui
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2
+  if os(windows)
+    ghc-options:      -optl-mwindows
   build-depends:       base, text, containers, lens, tagsoup, http-types, case-insensitive, parsec, vector, gtk3, async
                      , file-embed, deepseq
                      , votescrape, votecount
