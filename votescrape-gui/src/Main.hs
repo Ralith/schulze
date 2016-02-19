@@ -62,11 +62,15 @@ main = do
 
 parseFile :: Window -> Maybe FilePath -> IO ()
 parseFile window Nothing = dialog MessageError "No file selected" window Nothing
-parseFile window (Just file) = spawn $ \rw -> do
+parseFile _ (Just file) = spawn $ \rw -> do
   x <- tryIOError $ T.readFile file
   case parse ballotFile file <$> x of
-    Left err -> pure $ dialog MessageError "IO error" window (Just . T.pack $ displayException err)
-    Right (Left err) -> pure $ dialog MessageError "Parse error" window (Just . T.pack $ show err)
+    Left err -> pure $ do
+      dialog MessageError "IO error" (rwWindow rw) (Just . T.pack $ displayException err)
+      widgetDestroy (rwWindow rw)
+    Right (Left err) -> pure $ do
+      dialog MessageError "Parse error" (rwWindow rw) (Just . T.pack $ show err)
+      widgetDestroy (rwWindow rw)
     Right (Right bs) -> do
       info <- evaluate (process bs)
       pure $ fillResults rw info
