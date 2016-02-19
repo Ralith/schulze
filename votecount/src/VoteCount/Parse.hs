@@ -1,4 +1,4 @@
-module VoteCount.Parse (voteLine, anonBallot, ballot, input) where
+module VoteCount.Parse (voteLine, anonBallot, ballot, ballotFile) where
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
@@ -42,8 +42,8 @@ ballot = (do
   pure $ (CI.mk . T.strip . T.pack $ name, vs)
   ) <?> "ballot (voter name followed by one vote per line)"
 
-input :: Parser BallotSet
-input = do
+ballotFile :: Parser BallotSet
+ballotFile = do
   spaces
   bs <- M.fromList <$> sepEndBy1 ballot (many1 endOfLine)
   pure $ mkBallotSet bs

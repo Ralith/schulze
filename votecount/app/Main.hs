@@ -1,21 +1,12 @@
 module Main where
 
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Text.Parsec (parse)
 import System.Environment
 import System.IO
 import System.Exit
-import qualified Data.Map.Strict as M
-import Data.Vector (Vector)
-import qualified Data.Vector as V
-import Data.Array.IArray
-import Data.Foldable
 
-import VoteCount.Condorcet as Condorcet
-import VoteCount.Schulze
-import VoteCount.Ballot as Ballot
 import VoteCount.Parse
 import VoteCount.Format
 
@@ -29,6 +20,6 @@ main = do
 
 main' :: String -> Text -> IO ()
 main' file contents =
-  case parse input file contents of
+  case parse ballotFile file contents of
     Left err -> T.hPutStrLn stderr "parse error:" >> hPutStrLn stderr (show err) >> exitFailure
     Right r -> T.putStr (printCount r)
