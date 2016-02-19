@@ -25,11 +25,11 @@ import Network.URI
 
 import Text.HTML.TagSoup
 
-newtype Thread = Thread { _thread :: Word64 }
+newtype Thread = Thread Word64
   deriving (Eq, Show)
 makePrisms ''Thread
 
-newtype Post = Post { _post :: Word64 }
+newtype Post = Post Word64
   deriving (Eq, Show, Ord)
 makePrisms ''Post
 
@@ -141,7 +141,9 @@ getPage :: Manager -> ThreadPage -> IO (Either Status [Tag Text])
 getPage mgr tp = do
   req <- parseUrl (tpUrl tp)
   let req' = req { checkStatus = (\_ _ _ -> Nothing)}
+  putStrLn $ "req thread " ++ show (tp ^. tpThread._Thread) ++ " page " ++ show (tp ^. tpPage)
   response <- flip httpLbs mgr req'
+  putStrLn $ "got thread " ++ show (tp ^. tpThread._Thread) ++ " page " ++ show (tp ^. tpPage)
   pure $ if statusIsSuccessful (responseStatus response)
             then Right $ (map (fmap (^. strict)) . canonicalizeTags . parseTags . decodeUtf8With lenientDecode . responseBody)
                            response
