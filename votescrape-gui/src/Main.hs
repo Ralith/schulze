@@ -138,6 +138,7 @@ fillResults rw Nothing = do
   dialog MessageError "No votes found" (rwWindow rw) Nothing
   widgetDestroy (rwWindow rw)
 fillResults rw (Just (results, counts, vs)) = do
+  widgetHide (rwSpinner rw)
   textBufferSetText (rwWinnerB rw) results
   textBufferSetText (rwCountsB rw) counts
   textBufferSetText (rwVoteB rw) vs
