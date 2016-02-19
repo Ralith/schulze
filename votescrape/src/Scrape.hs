@@ -158,13 +158,13 @@ parsePostURI u =
           let opts = queryOpts (uriQuery u') in
           case ( decimal <$> M.lookup "threadid" opts
                , maybe (Right 40) decimal $ M.lookup "perpage" opts
-               , decimal <$> M.lookup "pagenumber" opts
+               , maybe (Right 1) decimal $ M.lookup "pagenumber" opts
                , _2 %~ decimal $ splitAt 5 (uriFragment u')
                ) of
-            (Just (Right tid), Right pp, Just (Right page), ("#post", Right pid)) ->
+            (Just (Right tid), Right pp, Right page, ("#post", Right pid)) ->
               Right (ThreadPage (Thread tid) pp page, Post pid)
-            _ -> Left "missing or malformed parameters"
-        Just x -> Left $ "unsupported host"
+            _ -> Left "missing or malformed URI parameters"
+        Just _ -> Left $ "unsupported host"
         _ -> Left "malformed URI"
 
 decimal :: Integral a => String -> Either String a
