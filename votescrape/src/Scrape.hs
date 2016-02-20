@@ -45,6 +45,16 @@ makeLenses ''ThreadPage
 instance Show ThreadPage where
   show = tpUrl
 
+filterQuotes :: [Tag Text] -> [Tag Text]
+filterQuotes = go 0
+  where
+    go :: Word -> [Tag Text] -> [Tag Text]
+    go n (TagOpen "blockquote" _ : xs) = go (succ n) xs
+    go n (TagClose "blockquote" : xs) = go (pred n) xs
+    go 0 (x : xs) = x : go 0 xs
+    go n (_ : xs) = go n xs
+    go _ [] = []
+
 bolded :: [Tag Text] -> Text
 bolded = T.strip . go 0
   where
@@ -72,7 +82,7 @@ getVote post = (\x -> set postBody x post) <$> safeLast votes
 
 getVotes :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status ([PostData Text], [String]))
 getVotes start end =
-  (_Right._1 %~ (\x -> (traverse %~ (getVote . (postBody %~ bolded) . snd)) x ^.. folded._Just)) <$> getPosts start end
+  (_Right._1 %~ (\x -> (traverse %~ (getVote . (postBody %~ bolded . filterQuotes) . snd)) x ^.. folded._Just)) <$> getPosts start end
 
 getPosts :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status ([(Post, PostData [Tag Text])], [String]))
 getPosts start end = do
