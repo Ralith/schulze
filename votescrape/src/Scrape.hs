@@ -19,6 +19,7 @@ import Data.Text.Lazy.Encoding (decodeUtf8With)
 import qualified Data.Text.Read as T
 import Data.Word (Word64)
 import Data.Either
+import Data.List (isPrefixOf, tails)
 
 import Network.HTTP.Client
 import Network.HTTP.Types.Status
@@ -55,15 +56,19 @@ bolded = T.strip . go 0
     go n (_ : xs) = go n xs
     go _  [] = ""
 
+safeLast :: [a] -> Maybe a
+safeLast [] = Nothing
+safeLast [x] = Just x
+safeLast (_:xs) = safeLast xs
+
+-- Gets the last paragraph of bold text starting with ##vote
 getVote :: PostData Text -> Maybe (PostData Text)
-getVote post =
-  case voteLines of
-    [] -> Nothing
-    _ -> Just $ set postBody (T.intercalate "\n" (drop 1 voteLines)) post
+getVote post = (\x -> set postBody x post) <$> safeLast votes
   where
     flag = T.toCaseFold "##vote"
-    voteLines :: [Text]
-    voteLines = takeWhile (not . T.null) . dropWhile (not . (== flag) . T.toCaseFold) . map T.strip . T.lines $ post ^. postBody
+    votes :: [Text]
+    votes = map (T.intercalate "\n" . drop 1)
+            . filter (isPrefixOf [flag] . map T.toCaseFold) . tails . map T.strip . T.lines $ post ^. postBody
 
 getVotes :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status ([PostData Text], [String]))
 getVotes start end =
