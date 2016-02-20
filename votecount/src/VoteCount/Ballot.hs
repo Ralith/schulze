@@ -107,7 +107,10 @@ mkBallot qs os = Ballot . M.map mkVote . M.fromList
                  . M.toList
 
 mkBallotSet :: Map TextVoter (Map TextQuestion TextVote) -> BallotSet
-mkBallotSet bs =
+mkBallotSet = mkBallotSet' . M.filter (not . M.null) . M.map (M.filter (not . null))
+
+mkBallotSet' :: Map TextVoter (Map TextQuestion TextVote) -> BallotSet
+mkBallotSet' bs =
   let qnames = S.elems . S.fromList . concatMap M.keys . M.elems $ bs
       qnamesToQs = M.fromList (zip qnames (map Question [0..]))
       onames = V.fromList $ map (V.fromList . S.elems) . M.elems
