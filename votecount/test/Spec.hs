@@ -62,7 +62,7 @@ tests = hUnitTestToTests $ TestList
   , "empty vote parsing" ~:
       Right ("1", []) ~=? parse Parse.voteLine "" "1"
   , "ballot" ~:
-      Right ("Voter", M.fromList [("1", [["A"]]), ("2", []), ("3", [["B"]])]) ~=? parse Parse.ballot "" "Voter\n1 a\n2\n3 b"
+      Right ("Voter", M.fromList [("1", [["A"]]), ("2", []), ("3", [["B"]])]) ~=? parse Parse.ballot "" "Voter\n1 a\n2\n3 b\n\nasdf"
   , "vote changes" ~:
       Right (M.fromList [("Voter", M.fromList [("1", [["C"]]), ("2", [["B"]])])])
       ~=? parse Parse.ballotFile' "" "Voter\n1 a\n2 b\n\nVoter\n1 c"
