@@ -1,0 +1,22 @@
+environment:
+  global:
+    STACK_ROOT: "c:\\s"
+    MSYSTEM: "MINGW64"
+
+platform:
+  - x64
+
+install:
+  - curl -ostack.zip -L --insecure https://www.stackage.org/stack/windows-x86_64
+  - 7z x stack.zip stack.exe
+  - stack setup --no-terminal > nul
+  - C:\msys64\usr\bin\bash.exe -l -c "pacman --noconfirm -S mingw-w64-x86_64-gtk3"
+
+build_script:
+  - C:\msys64\usr\bin\bash.exe -l -c "cd /c/projects/votecount; ./stack.exe --skip-msys build --copy-bins --local-bin-path . && ./win32-bundle.sh"
+
+test_script:
+  - C:\msys64\usr\bin\bash.exe -l -c "cd /c/projects/votecount; ./stack.exe --skip-msys test"
+
+artifacts:
+  - path: votecount-\*.zip
