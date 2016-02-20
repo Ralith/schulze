@@ -27,6 +27,8 @@
                   <object class="GtkEntry" id="from_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="tooltip_markup" translatable="yes">URI to the post &lt;b&gt;before&lt;/b&gt; counting should begin
+This should usually be the update post</property>
                     <property name="hexpand">True</property>
                     <property name="activates_default">True</property>
                     <property name="caps_lock_warning">False</property>
@@ -42,6 +44,8 @@
                   <object class="GtkEntry" id="to_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">Optional URI to the last post to be counted
+If blank, all remaining posts are scraped</property>
                     <property name="hexpand">True</property>
                     <property name="activates_default">True</property>
                     <property name="caps_lock_warning">False</property>
@@ -94,6 +98,8 @@
               <object class="GtkFileChooserButton" id="file_page">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Select a text file containing votes
+Each vote must begin with a voter name and end with an empty line</property>
                 <property name="create_folders">False</property>
                 <property name="title" translatable="yes">Select Vote File</property>
               </object>
