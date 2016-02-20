@@ -6,6 +6,7 @@ import Control.Monad
 import Control.Concurrent.Async
 import Control.Concurrent.QSem
 import Control.Exception
+import Data.Char (isSpace)
 import Data.Foldable
 import Data.List.Split
 import Data.Map (Map)
@@ -49,7 +50,7 @@ bolded = T.strip . go 0
     go :: Word -> [Tag Text] -> Text
     go n (TagOpen "b" _ : xs) = go (succ n) xs
     go n (TagClose "b" : xs) = go (pred n) xs
-    go 0 (_:xs) = go 0 xs
+    go 0 (TagText t : xs) = T.append (T.filter isSpace t) (go 0 xs)
     go n (TagText t : xs) = T.append t (go n xs)
     go n (_ : xs) = go n xs
     go _  [] = ""
