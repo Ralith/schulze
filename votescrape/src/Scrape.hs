@@ -36,6 +36,7 @@ newtype Post = Post Word64
 makePrisms ''Post
 
 data PostData a = PostData { _postAuthor :: Text, _postBody :: a }
+  deriving Show
 makeLenses ''PostData
 
 data ThreadPage = ThreadPage { _tpThread :: Thread, _tpPerPage :: Word, _tpPage :: Word }
