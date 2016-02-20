@@ -38,7 +38,7 @@ that something like their desired option will win, without weakening their vote 
 ###### Question names
 
 - "1", "2", and "Bonus" are question names
-- Question names are arbitrary text that does not contain white space
+- Question names are arbitrary text that does not contain white space, "." or ":".
 - A "." or a ":" at the end of a question name is ignored
 - Question names are case-insensitive
 
@@ -56,7 +56,7 @@ manual cleanup if their vote is to be properly counted.
 
 Write-ins of more than a few words should not be written as options directly. Instead, the author of a write-in should
 describe their plan in prose of whatever length, and give it a short, unique option name such as "Plan Tran". The
-write-in author and any other voters so inclined may then vote for the write-in with the short name.
+write-in author and any other voters so inclined may then vote for it using the short name.
 
 ## GUI usage
 
