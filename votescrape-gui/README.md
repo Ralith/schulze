@@ -29,7 +29,7 @@ the most recently given preferences for each question are considered.
 Although the format supports voting for multiple options with the same level of preference, this should not be confused
 with voting for a combination as a single option that might win monolithically. In other words, a vote for "A, B" is not
 a vote to do both A and B, it is a vote to do either A or B. To vote for a combination, voters should create write-ins,
-or introduce use single option names like "A+B", which have no special meaning.
+or use singular option names like "A+B", which have no special meaning.
 
 Voters favoring an option that is similar to other options should consider taking advantage of the format to vote for
 the similar options in addition to but at a lower preference rank than their favored option. This increases the chance
