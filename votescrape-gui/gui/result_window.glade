@@ -23,8 +23,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="tooltip_text" translatable="yes">Ranking of options for each question
-A;B indicates that A won over B
-A,B indicates that A is tied with B</property>
+A; B indicates that A won over B
+A, B indicates that A is tied with B</property>
                 <property name="shadow_type">in</property>
                 <child>
                   <object class="GtkTextView" id="winner_view">
