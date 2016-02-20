@@ -13,7 +13,7 @@ import System.Environment
 import System.Exit
 import System.IO
 
-import Text.Parsec (parse)
+import Text.Parsec (parse, spaces)
 
 import Network.HTTP.Types.Status
 
@@ -67,7 +67,7 @@ process (Right (vs, errs)) = do
   forM_ errs $ \err -> do
     hPutStrLn stderr $ "error scraping post: " ++ err
   unless (null errs) $ hPutStrLn stderr "continuing"
-  let parsed = map (postBody %~ (\x -> (x, parse anonBallot "" x))) vs
+  let parsed = map (postBody %~ (\x -> (x, parse (spaces *> anonBallot) "" x))) vs
   clean <- foldrM (\v clean -> do
     case v ^. postBody of
       (x, Left err) -> do
@@ -79,7 +79,7 @@ process (Right (vs, errs)) = do
         pure clean
       (_, Right x) -> pure ((CI.mk $ v ^. postAuthor, x):clean)
       ) [] parsed
-  let bs = mkBallotSet . M.fromList $ clean
+  let bs = mkBallotSet . M.fromListWith M.union $ clean
   putStrLn " done"
   T.putStr $ printCount bs
 process (Left err) = do

@@ -3,6 +3,7 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit
 
 import qualified Data.Set as S
+import qualified Data.Map as M
 import Data.Maybe (fromJust)
 import Data.List (findIndex)
 import Text.Parsec (parse)
@@ -56,6 +57,15 @@ tests = hUnitTestToTests $ TestList
       Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "1 A, Plan Tran; B"
   , "mangled vote parsing" ~:
       Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "1 A   ,, , Plan Tran,  ; ; B;;;"
+  , "question suffix stripping" ~:
+      Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "1. A, Plan Tran; B"
+  , "empty vote parsing" ~:
+      Right ("1", []) ~=? parse Parse.voteLine "" "1"
+  , "ballot" ~:
+      Right ("Voter", M.fromList [("1", [["A"]]), ("2", []), ("3", [["B"]])]) ~=? parse Parse.ballot "" "Voter\n1 a\n2\n3 b"
+  , "vote changes" ~:
+      Right (M.fromList [("Voter", M.fromList [("1", [["C"]]), ("2", [["B"]])])])
+      ~=? parse Parse.ballotFile' "" "Voter\n1 a\n2 b\n\nVoter\n1 c"
   ]
 
 main :: IO ()

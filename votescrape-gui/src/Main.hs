@@ -24,7 +24,7 @@ import System.IO.Error
 
 import Scrape
 
-import Text.Parsec (parse)
+import Text.Parsec (parse, spaces)
 import VoteCount.Ballot
 import VoteCount.Condorcet
 import VoteCount.Format
@@ -105,7 +105,7 @@ process' (rs, htmlParseErrs) =
   , map (T.append "error parsing post HTML: " . T.pack) htmlParseErrs ++ voteParseErrs
   )
   where
-    txt = process $ mkBallotSet . M.fromList $ voteMap
+    txt = process $ mkBallotSet . M.fromListWith M.union $ voteMap
     (voteMap, voteParseErrs) =
       foldr (\post accum@(vs, errs) ->
                case post ^. postBody of
@@ -115,7 +115,7 @@ process' (rs, htmlParseErrs) =
                                  , T.pack (show err)
                                  ] : errs)
                  (_, Right x) -> ((CI.mk $ post ^. postAuthor, x):vs, errs)
-            ) ([], []) $ map (postBody %~ (\x -> (x, parse anonBallot "" x))) rs
+            ) ([], []) $ map (postBody %~ (\x -> (x, parse (spaces *> anonBallot) "" x))) rs
 
 data ResultWindow = ResultWindow { rwWindow :: Window
                                  , rwSpinner :: Widget

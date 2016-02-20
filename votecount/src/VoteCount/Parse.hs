@@ -1,4 +1,4 @@
-module VoteCount.Parse (voteLine, anonBallot, ballot, ballotFile) where
+module VoteCount.Parse (voteLine, anonBallot, ballot, ballotFile, ballotFile') where
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
@@ -15,15 +15,14 @@ import VoteCount.Ballot
 hspaces :: Parser ()
 hspaces = skipMany (oneOf " \t")
 
-nonspace :: Parser Char
-nonspace = noneOf " \t\r\n"
-
 -- question, preferences
 voteLine :: Parser (CI Text, [[CI Text]])
 voteLine = (do
-  q <- many1 nonspace
+  q <- many1 (noneOf " \t\r\n.:" <?> "question name") <* optional (oneOf ".:")
   hspaces
-  ps <- sepEndBy1 (sepEndBy1 (many1 (noneOf ",;\r\n") <?> "vote option (e.g. \"A\")") (many1 (char ',' <* hspaces))) (many1 (char ';' <* hspaces))
+  ps <- maybe [] id <$> (optionMaybe $ sepEndBy1 (sepEndBy1 (many1 (noneOf ",;\r\n") <?> "vote option (e.g. \"A\")")
+                                                            (many1 (char ',' <* hspaces)))
+                                                 (many1 (char ';' <* hspaces)))
   pure $ (CI.mk . T.pack $ q, map (map (CI.mk . T.strip . T.pack)) ps)
   ) <?> "vote (e.g. \"2 A,B;C;D,E\")"
 
@@ -36,14 +35,16 @@ anonBallot = (do
 -- voter, question to preferences
 ballot :: Parser (CI Text, Map (CI Text) [[CI Text]])
 ballot = (do
-  name <- manyTill (noneOf "\r\n") endOfLine
-  hspaces
+  name <- manyTill (noneOf "\r\n" <?> "voter name") endOfLine
+  spaces
   vs <- anonBallot
   pure $ (CI.mk . T.strip . T.pack $ name, vs)
   ) <?> "ballot (voter name followed by one vote per line)"
 
-ballotFile :: Parser BallotSet
-ballotFile = do
+ballotFile' :: Parser (Map (CI Text) (Map (CI Text) [[CI Text]]))
+ballotFile' = do
   spaces
-  bs <- M.fromList <$> sepEndBy1 ballot (many1 endOfLine)
-  pure $ mkBallotSet bs
+  M.fromListWith M.union . filter (not . M.null . snd) <$> sepEndBy1 ballot (many1 endOfLine)
+
+ballotFile :: Parser BallotSet
+ballotFile = mkBallotSet <$> ballotFile'
