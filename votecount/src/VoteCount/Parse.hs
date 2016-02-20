@@ -15,11 +15,14 @@ import VoteCount.Ballot
 hspaces :: Parser ()
 hspaces = skipMany (oneOf " \t")
 
+nonQuestionNameChars :: [Char]
+nonQuestionNameChars = " \t\r.:"
+
 -- question, preferences
 voteLine :: Parser (CI Text, [[CI Text]])
 voteLine = (do
-  q <- many1 (noneOf " \t\r\n.:" <?> "question name") <* optional (oneOf ".:")
-  hspaces
+  q <- many1 (noneOf ('\n':nonQuestionNameChars) <?> "question name")
+  skipMany (oneOf nonQuestionNameChars)
   ps <- maybe [] id <$> (optionMaybe $ sepEndBy1 (sepEndBy1 (many1 (noneOf ",;\r\n") <?> "vote option (e.g. \"A\")")
                                                             (many1 (char ',' <* hspaces)))
                                                  (many1 (char ';' <* hspaces)))
