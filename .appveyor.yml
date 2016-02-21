@@ -12,6 +12,11 @@ install:
   - stack setup --no-terminal > nul
   - C:\msys64\usr\bin\bash.exe -l -c "pacman --noconfirm -S mingw-w64-x86_64-gtk3"
 
+before_build:
+  - git clone "https://github.com/gtk2hs/gtk2hs.git"
+  - cd gtk2hs && git apply ../gtk2hs.diff && cd ..
+  - git apply windows-stack.diff
+
 build_script:
   - C:\msys64\usr\bin\bash.exe -l -c "cd /c/projects/votecount; ./stack.exe --skip-msys build --copy-bins --local-bin-path . && ./win32-bundle.sh"
 

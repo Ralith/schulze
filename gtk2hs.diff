@@ -1,0 +1,15 @@
+diff --git a/gio/System/GIO/File/IOError.chs b/gio/System/GIO/File/IOError.chs
+index 6890085..f53ed2e 100644
+--- a/gio/System/GIO/File/IOError.chs
++++ b/gio/System/GIO/File/IOError.chs
+@@ -46,8 +46,7 @@ import System.Glib.FFI
+ --------------------
+ -- Methods
+
+--- | Converts errno.h error codes into GIO error codes.
+-ioErrorFromErrno :: Int  -- ^ @err@ Error number as defined in errno.h.
+-                 -> IO IOErrorEnum  -- ^ returns 'IOErrorEnum' value for the given errno.h error number.
++ioErrorFromErrno :: Int
++                 -> IO IOErrorEnum
+ ioErrorFromErrno err =
+   liftM (toEnum . fromIntegral) $ {#call g_io_error_from_errno#} (fromIntegral err)

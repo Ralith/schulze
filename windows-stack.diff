@@ -1,0 +1,17 @@
+diff --git a/stack.yaml b/stack.yaml
+index 2013202..e1b2ba7 100644
+--- a/stack.yaml
++++ b/stack.yaml
+@@ -8,6 +8,12 @@ packages:
+ - votecount
+ - votescrape
+ - votescrape-gui
++- gtk2hs/cairo
++- gtk2hs/pango
++- gtk2hs/gio
++- gtk2hs/glib
++- gtk2hs/gtk
++
+ 
+ # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
+ extra-deps: []
