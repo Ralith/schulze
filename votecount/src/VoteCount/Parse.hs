@@ -16,11 +16,12 @@ hspaces :: Parser ()
 hspaces = skipMany (oneOf " \t")
 
 nonQuestionNameChars :: [Char]
-nonQuestionNameChars = " \t\r.:"
+nonQuestionNameChars = " \t\r.:)"
 
 -- question, preferences
 voteLine :: Parser (CI Text, [[CI Text]])
 voteLine = (do
+  optional (char '(')
   q <- many1 (noneOf ('\n':nonQuestionNameChars) <?> "question name")
   skipMany (oneOf nonQuestionNameChars)
   ps <- maybe [] id <$> (optionMaybe $ sepEndBy1 (sepEndBy1 (many1 (noneOf ",;\r\n") <?> "vote option (e.g. \"A\")")

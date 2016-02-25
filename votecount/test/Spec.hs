@@ -57,8 +57,8 @@ tests = hUnitTestToTests $ TestList
       Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "1 A, Plan Tran; B"
   , "mangled vote parsing" ~:
       Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "1 .A   ,, , Plan Tran,  ; ; B;;;"
-  , "question suffix stripping" ~:
-      Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "1. A, Plan Tran; B"
+  , "question name stripping" ~:
+      Right ("1", [["A", "Plan Tran"], ["B"]]) ~=? parse Parse.voteLine "" "(1.) A, Plan Tran; B"
   , "empty vote parsing" ~:
       Right ("1", []) ~=? parse Parse.voteLine "" "1"
   , "ballot" ~:
