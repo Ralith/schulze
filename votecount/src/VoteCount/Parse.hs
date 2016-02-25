@@ -32,7 +32,7 @@ voteLine = (do
 
 anonBallot :: Parser (Map (CI Text) [[CI Text]])
 anonBallot = (do
-  vs <- sepEndBy1 voteLine endOfLine
+  vs <- sepEndBy1 (hspaces *> voteLine) endOfLine
   pure $ M.fromList vs
   ) <?> "ballot (one vote per line)"
 
