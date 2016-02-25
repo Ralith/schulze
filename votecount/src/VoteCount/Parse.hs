@@ -28,7 +28,7 @@ voteLine = (do
                                                             (many1 (char ',' <* hspaces)))
                                                  (many1 (char ';' <* hspaces)))
   pure $ (CI.mk . T.pack $ q, map (map (CI.mk . T.strip . T.pack)) ps)
-  ) <?> "vote (e.g. \"2 A,B;C;D,E\")"
+  ) <?> "vote (e.g. \"2. A, B; C; D, E\")"
 
 anonBallot :: Parser (Map (CI Text) [[CI Text]])
 anonBallot = (do

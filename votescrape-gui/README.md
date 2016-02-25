@@ -35,14 +35,14 @@ Voters favoring an option that is similar to other options should consider takin
 the similar options in addition to but at a lower preference rank than their favored option. This increases the chance
 that something like their desired option will win, without weakening their vote for their desired option.
 
-###### Question names
+### Question names
 
 - "1", "2", and "Bonus" are question names
-- Question names are arbitrary text that does not contain white space, "." or ":".
-- A "." or a ":" at the end of a question name is ignored
+- Question names are arbitrary text that does not contain white space, ".", ":", or ")".
+- Any number of ".", ":" or ")" at the end of a question name are ignored, along with at most one "(" at the start
 - Question names are case-insensitive
 
-###### Option names
+### Option names
 
 - "A", "B", "C", "D" and "Plan Tran" are option names.
 - Option names are arbitrary text that does not contain line breaks, "," or ";"
@@ -62,13 +62,13 @@ write-in author and any other voters so inclined may then vote for it using the 
 
 Launch the GUI by running the executable named "votescrape-gui". On Windows, this is located inside the "bin" folder.
 
-#### Vote Count window
+### Vote Count window
 
 The main window is what opens when you start the program. It consists of a "Scrape" tab, used for scraping posts
 directly from a thread, and a "File" tab, used for counting votes stored in a text file on your computer. Whichever tab
 is selected, pressing the "Count" button will open a results window. Counts may be performed simultaneously.
 
-##### Scrape tab
+#### Scrape tab
 
 - Both inputs expect URIs that link to a specific post in a thread. For example:
   http://forums.somethingawful.com/showthread.php?threadid=3764408&pagenumber=1&perpage=40#post456324218 is an
@@ -77,7 +77,7 @@ is selected, pressing the "Count" button will open a results window. Counts may 
 - The "To post" field is optional. If left blank, all posts following the "From post" will be scraped.
 - The specific post identified by the "From post" link is not scraped. You should use the link to the post that opens voting.
 
-##### File tab
+#### File tab
 
 You can use this tab to count votes in a plain textfile instead of from a thread.
 
@@ -87,7 +87,7 @@ Votes in a text file need different formatting:
 - Votes must be separated by blank lines
 - No non-vote text is permitted in the file
 
-#### Vote Results window
+### Vote Results window
 
 Whenever you begin a count, a results window opens. A spinner will be displayed over the window until the count is
 complete. You can close the window at any time to cancel the count.
@@ -97,12 +97,12 @@ HTTP requests. This can happen if you're scraping or viewing a lot of pages in a
 unlucky. Cancel the count and try again. If the problem recurs, try letting it cool down for a few minutes. If this
 happens to you frequently when you're not scraping or viewing large numbers of pages, please report a bug.
 
-##### Winners tab
+#### Winners tab
 
 Each line contains a question name followed by a ranking of the options in a format similar to votes. For
 example, "A; B, C; D" indicates that A won the vote, B and C are tied for second, and D comes third.
 
-##### Counts tab
+#### Counts tab
 
 For each question, these charts convey how many people prefer an option to any other option. This is the distilled data
 that is used to actually compute vote winners. Each cell indicates the number of voters that prefer the option whose row
@@ -113,7 +113,7 @@ were. Use these charts if necessary to judge the exact relative degree of suppor
 option with the largest number of preferences over other options is not necessarily the winner, because, for example, it
 may be disfavored by a similarly large number of voters who are not otherwise in agreement.
 
-##### Votes tab
+#### Votes tab
 
 The unprocessed votes scraped from a thread or file are displayed here. Use this tab to double-check that votes were
 counted correctly. If you need to make corrections such as fixing voter typos or adding missing votes, you can copy the
