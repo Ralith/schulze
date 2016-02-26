@@ -6,6 +6,8 @@ import Control.Monad
 import Control.Concurrent.Async
 import Control.Concurrent.QSem
 import Control.Exception
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
 import Data.Char (isSpace)
 import Data.Foldable
 import Data.List.Split
@@ -14,6 +16,7 @@ import qualified Data.Map as M
 import Data.Maybe (isJust)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Text.Encoding (encodeUtf8)
 import Data.Text.Encoding.Error (lenientDecode)
 import Data.Text.Lazy.Encoding (decodeUtf8With)
 import qualified Data.Text.Read as T
@@ -22,6 +25,7 @@ import Data.Either
 import Data.List (isPrefixOf, tails)
 
 import Network.HTTP.Client
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Types.Status
 import Network.URI
 
@@ -81,19 +85,36 @@ getVote post = (\x -> set postBody x post) <$> safeLast votes
     votes = map (T.intercalate "\n" . drop 1)
             . filter (isPrefixOf [flag] . map T.toCaseFold) . tails . map T.strip . T.lines $ post ^. postBody
 
-getVotes :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status ([PostData Text], [String]))
-getVotes start end =
-  (_Right._1 %~ (\x -> (traverse %~ (getVote . (postBody %~ bolded . filterQuotes) . snd)) x ^.. folded._Just)) <$> getPosts start end
+login :: Manager -> Text -> Text -> IO (Either Status CookieJar)
+login mgr uname passwd = do
+  req <- urlEncodedBody [("action", "login"), ("username", encodeUtf8 uname), ("password", encodeUtf8 passwd)]
+         <$> parseUrl "https://forums.somethingawful.com/account.php"
+  resp <- httpNoBody (req { checkStatus = (\_ _ _ -> Nothing)}) mgr
+  pure $ if statusIsSuccessful (responseStatus resp)
+            then Right (responseCookieJar resp)
+            else Left (responseStatus resp)
 
-getPosts :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either Status ([(Post, PostData [Tag Text])], [String]))
-getPosts start end = do
-  mgr <- newManager defaultManagerSettings
+data VoteErr = HTTPErr Status | NeedsLogin
+  deriving (Show)
+
+errMsg :: VoteErr -> Text
+errMsg (HTTPErr status) = T.concat ["HTTP ", T.pack $ show (statusCode status), ": ", decodeUtf8With lenientDecode (statusMessage status ^. from strict) ^. strict]
+errMsg NeedsLogin = "Login required"
+
+getVotes :: CookieJar -> (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either VoteErr ([PostData Text], [String]))
+getVotes cookies start end =
+  (_Right._1 %~ (\x -> (traverse %~ (getVote . (postBody %~ bolded . filterQuotes) . snd)) x ^.. folded._Just))
+  <$> getPosts cookies start end
+
+getPosts :: CookieJar -> (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either VoteErr ([(Post, PostData [Tag Text])], [String]))
+getPosts cookies start end = do
+  mgr <- newManager tlsManagerSettings
   allPosts <-
     case end of
-      Nothing -> getPosts' mgr (start ^. _1)
+      Nothing -> getPosts' mgr cookies (start ^. _1)
       Just e -> do
         sem <- newQSem 2 -- SA DoS protection kicks in if this is too large
-        results <- mapConcurrently (\x -> bracket (waitQSem sem) (const (signalQSem sem)) (const (getPagePosts mgr x))) $
+        results <- mapConcurrently (\x -> bracket (waitQSem sem) (const (signalQSem sem)) (const (getPagePosts mgr cookies x))) $
           map (\x -> tpPage .~ x $ start ^. _1)
               [start ^. _1.tpPage .. e ^. _1.tpPage]
         pure $ foldr (\r xs ->
@@ -122,20 +143,20 @@ hasClass' c t = isJust (join $ find (==c) . T.split (==' ') <$> lookup "class" t
 isPost :: Tag Text -> Bool
 isPost tag = hasClass "post" tag && fromAttrib "id" tag /= "post"
 
-getPosts' :: Manager -> ThreadPage -> IO (Either Status [Either String (Post, PostData [Tag Text])])
-getPosts' mgr currentPage = do
-  page <- getPage mgr currentPage
+getPosts' :: Manager -> CookieJar -> ThreadPage -> IO (Either VoteErr [Either String (Post, PostData [Tag Text])])
+getPosts' mgr cookies currentPage = do
+  page <- getPage mgr cookies currentPage
   case page of
     Left err -> pure (Left err)
     Right tags -> do
       let posts = map parsePost . partitions isPost $ tags
       if fromIntegral (length posts) < (currentPage ^. tpPerPage)
          then pure (Right posts)
-         else (fmap (posts ++)) <$> getPosts' mgr (currentPage & tpPage %~ succ)
+         else (fmap (posts ++)) <$> getPosts' mgr cookies (currentPage & tpPage %~ succ)
 
-getPagePosts :: Manager -> ThreadPage -> IO (Either Status [Either String (Post, PostData [Tag Text])])
-getPagePosts mgr page = do
-  x <- fmap (map parsePost . partitions isPost) <$> getPage mgr page
+getPagePosts :: Manager -> CookieJar -> ThreadPage -> IO (Either VoteErr [Either String (Post, PostData [Tag Text])])
+getPagePosts mgr cookies page = do
+  x <- fmap (map parsePost . partitions isPost) <$> getPage mgr cookies page
   pure x
 
 parsePost :: [Tag Text] -> Either String (Post, PostData [Tag Text])
@@ -154,17 +175,21 @@ parsePost (x:xs) = do
 matches :: [a -> Bool] -> a -> Bool
 matches fs x = all ($ x) fs
 
-getPage :: Manager -> ThreadPage -> IO (Either Status [Tag Text])
-getPage mgr tp = do
+responseTags :: Response BSL.ByteString -> [Tag Text]
+responseTags = (map (fmap (^. strict)) . canonicalizeTags . parseTags . decodeUtf8With lenientDecode . responseBody)
+
+getPage :: Manager -> CookieJar -> ThreadPage -> IO (Either VoteErr [Tag Text])
+getPage mgr cookies tp = do
   req <- parseUrl (tpUrl tp)
-  let req' = req { checkStatus = (\_ _ _ -> Nothing)}
+  let req' = req { checkStatus = (\_ _ _ -> Nothing), cookieJar = Just cookies }
   putStrLn $ "req thread " ++ show (tp ^. tpThread._Thread) ++ " page " ++ show (tp ^. tpPage)
   response <- flip httpLbs mgr req'
   putStrLn $ "got thread " ++ show (tp ^. tpThread._Thread) ++ " page " ++ show (tp ^. tpPage)
   pure $ if statusIsSuccessful (responseStatus response)
-            then Right $ (map (fmap (^. strict)) . canonicalizeTags . parseTags . decodeUtf8With lenientDecode . responseBody)
-                           response
-            else Left (responseStatus response)
+            then if BS.isInfixOf "Sorry, you must be a registered forums member to view this page" (responseBody response ^. strict)
+                    then Left NeedsLogin
+                    else Right (responseTags response)
+            else Left (HTTPErr $ responseStatus response)
 
 -- http://forums.somethingawful.com/showthread.php?threadid=3657951&userid=0&perpage=40&pagenumber=520#post455115330
 parsePostURI :: String -> Either String (ThreadPage, Post)
@@ -196,7 +221,7 @@ queryOpts :: String -> Map String String
 queryOpts = M.fromList . map ((_2 %~ drop 1) . break (== '=')) . splitOn "&" . drop 1
 
 tpUrl :: ThreadPage -> String
-tpUrl tp = concat [ "http://forums.somethingawful.com/showthread.php?threadid="
+tpUrl tp = concat [ "https://forums.somethingawful.com/showthread.php?threadid="
                   , show (tp ^. tpThread . _Thread)
                   , "&userid=0"
                   , "&perpage=", show (tp ^. tpPerPage)

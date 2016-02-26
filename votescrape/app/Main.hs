@@ -15,6 +15,7 @@ import System.IO
 
 import Text.Parsec (parse, spaces)
 
+import Network.HTTP.Client (createCookieJar)
 import Network.HTTP.Types.Status
 
 import Scrape
@@ -56,11 +57,11 @@ begin :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO ()
 begin start end = do
   putStr "fetching posts..."
   hFlush stdout
-  r <- getVotes start end
+  r <- getVotes (createCookieJar []) start end
   putStrLn " done"
   process r
 
-process :: Either Status ([(PostData Text)], [String]) -> IO ()
+process :: Either VoteErr ([(PostData Text)], [String]) -> IO ()
 process (Right (vs, errs)) = do
   putStr "scraping votes..."
   hFlush stdout
@@ -83,6 +84,6 @@ process (Right (vs, errs)) = do
   putStrLn " done"
   T.putStr $ printCount bs
 process (Left err) = do
-  hPutStr stderr $ "server returned HTTP " ++ show (statusCode err) ++ ": "
-  T.hPutStrLn stderr $ (decodeUtf8With lenientDecode $ statusMessage err ^. from strict) ^. strict
+  hPutStr stderr $ "error fetching votes: "
+  T.hPutStrLn stderr $ errMsg err
   exitFailure

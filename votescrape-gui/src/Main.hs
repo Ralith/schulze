@@ -15,10 +15,13 @@ import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.IO as T
 import qualified Data.Vector as V
+import Data.IORef
 
 import Graphics.UI.Gtk
 
-import Network.HTTP.Types.Status
+import Network.HTTP.Types
+import Network.HTTP.Client (CookieJar, createCookieJar, newManager)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import System.IO.Error
 
@@ -33,7 +36,11 @@ import VoteCount.Parse (ballotFile, anonBallot)
 
 main :: IO ()
 main = do
+  cookies <- newIORef (createCookieJar [])
+  manager <- newManager tlsManagerSettings
+
   initGUI
+
   rootBuilder <- builderNew
   builderAddFromString rootBuilder (decodeUtf8 $(embedFile "gui/root_window.glade"))
 
@@ -44,18 +51,48 @@ main = do
   toEntry <- builderGetObject rootBuilder castToEntry ("to_entry" :: Text)
 
   notebook <- builderGetObject rootBuilder castToNotebook ("notebook" :: Text)
-  scrapePage <- builderGetObject rootBuilder castToGrid ("scrape_page" :: Text)
+  scrapePage <- builderGetObject rootBuilder castToBox ("scrape_page" :: Text)
   filePage <- builderGetObject rootBuilder castToFileChooserButton ("file_page" :: Text)
 
   countButton <- builderGetObject rootBuilder castToButton ("count_button":: Text)
   on countButton buttonActivated $ do
     page <- fromJust <$> (notebookGetNthPage notebook =<< notebookGetCurrentPage notebook)
+    cs <- readIORef cookies
     fromJust $ lookup page
       [ (castToWidget scrapePage
-        , join $ scrape window <$> entryGetText fromEntry <*> entryGetText toEntry)
+        , join $ scrape cs window <$> entryGetText fromEntry <*> entryGetText toEntry)
       , (castToWidget filePage
         , parseFile window =<< fileChooserGetFilename filePage)
       ]
+
+  loginButton <- builderGetObject rootBuilder castToButton ("login_button" :: Text)
+  on loginButton buttonActivated $ do
+    dialogBuilder <- builderNew
+    builderAddFromString dialogBuilder (decodeUtf8 $(embedFile "gui/login_dialog.glade"))
+
+    d <- builderGetObject dialogBuilder castToDialog ("login_dialog" :: Text)
+    set d [ windowTransientFor := window ]
+
+    unameEntry <- builderGetObject dialogBuilder castToEntry ("username_entry" :: Text)
+    passEntry <- builderGetObject dialogBuilder castToEntry ("password_entry" :: Text)
+
+    ok <- builderGetObject dialogBuilder castToButton ("ok" :: Text)
+    on ok buttonActivated $ do
+      set d [ widgetSensitive := False ]
+      uname <- entryGetText unameEntry
+      pass <- entryGetText passEntry
+      void . async $ do
+        res <- login manager uname pass
+        postGUIAsync $ do
+          case res of
+            Left err -> dialog MessageError (T.append "HTTP error " (T.pack (show (statusCode err)))) (castToWindow d) (Just . T.pack $ show err)
+            Right cs -> writeIORef cookies cs
+          widgetDestroy d
+
+    cancel <- builderGetObject dialogBuilder castToButton ("cancel" :: Text)
+    on cancel buttonActivated $ widgetDestroy d
+
+    widgetShowAll d
 
   widgetShowAll window
   mainGUI
@@ -75,22 +112,22 @@ parseFile _ (Just file) = spawn $ \rw -> do
       info <- evaluate (process bs)
       pure $ fillResults rw info
 
-scrape :: Window -> Text -> Text -> IO ()
-scrape w "" _ = dialog MessageError "Input error" w (Just "\"From post\" URI must be specified")
-scrape w x "" =
+scrape :: CookieJar -> Window -> Text -> Text -> IO ()
+scrape _  w "" _ = dialog MessageError "Input error" w (Just "\"From post\" URI must be specified")
+scrape cs w x "" =
   case parsePostURI (T.unpack x) of
     Left err -> dialog MessageError "Input error" w (Just . T.pack $ err)
-    Right x' -> spawn (\rw -> do rs <- fmap process' <$> getVotes x' Nothing
+    Right x' -> spawn (\rw -> do rs <- fmap process' <$> getVotes cs x' Nothing
                                  seq (force (rs ^?_Right._1)) $ pure (displayResults rw rs))
-scrape w x y =
+scrape cs w x y =
   case (parsePostURI (T.unpack x), parsePostURI (T.unpack y)) of
     (Left err, _) -> dialog MessageError "Input error" w (Just $ T.pack err)
     (_, Left err) -> dialog MessageError "Input error" w (Just $ T.pack err)
-    (Right x', Right y') -> spawn (\rw -> do rs <- fmap process' <$> getVotes x' (Just y')
+    (Right x', Right y') -> spawn (\rw -> do rs <- fmap process' <$> getVotes cs x' (Just y')
                                              seq (force (rs ^?_Right._1)) $ pure (displayResults rw rs))
 
-process :: BallotSet -> Maybe (Text, Text, Text)
-process bs = if questionCount == 0 then Nothing else Just (a,b,c)
+process :: BallotSet -> Either Text (Text, Text, Text)
+process bs = if questionCount == 0 then Left "No votes found" else Right (a,b,c)
   where
     a = printResults bs (V.zip optionCounts voteCounts)
     b = printCounts bs voteCounts
@@ -99,7 +136,7 @@ process bs = if questionCount == 0 then Nothing else Just (a,b,c)
     optionCounts = V.generate questionCount (\i -> fromIntegral . length . options bs $ fromIntegral i)
     voteCounts = V.map (uncurry count) $ V.zip optionCounts (aggregate (fromIntegral questionCount) (V.toList . votes $ bs))
 
-process' :: ([(PostData Text)], [String]) -> (Maybe (Text, Text, Text), [Text])
+process' :: ([(PostData Text)], [String]) -> (Either Text (Text, Text, Text), [Text])
 process' (rs, htmlParseErrs) =
   ( txt
   , map (T.append "error parsing post HTML: " . T.pack) htmlParseErrs ++ voteParseErrs
@@ -132,24 +169,24 @@ spawn f = do
   on (rwWindow rw) unrealize $ void $ async (cancel op)
   pure ()
 
-fillResults :: ResultWindow -> Maybe (Text, Text, Text) -> IO ()
-fillResults rw Nothing = do
+fillResults :: ResultWindow -> Either Text (Text, Text, Text) -> IO ()
+fillResults rw (Left msg) = do
   widgetHide (rwSpinner rw)
-  dialog MessageError "No votes found" (rwWindow rw) Nothing
+  dialog MessageError msg (rwWindow rw) Nothing
   widgetDestroy (rwWindow rw)
-fillResults rw (Just (results, counts, vs)) = do
+fillResults rw (Right (results, counts, vs)) = do
   widgetHide (rwSpinner rw)
   textBufferSetText (rwWinnerB rw) results
   textBufferSetText (rwCountsB rw) counts
   textBufferSetText (rwVoteB rw) vs
 
-displayResults :: ResultWindow -> Either Status (Maybe (Text, Text, Text), [Text]) -> IO ()
+displayResults :: ResultWindow -> Either VoteErr (Either Text (Text, Text, Text), [Text]) -> IO ()
 displayResults rw (Right (txt, errs)) = do
   fillResults rw txt
   unless (null errs) $ dialog MessageWarning "Parser failures" (rwWindow rw) (Just $ T.unlines errs)
 displayResults rw (Left err) = do
   widgetHide (rwSpinner rw)
-  dialog MessageError (T.append "HTTP error " (T.pack (show (statusCode err)))) (rwWindow rw) (Just . T.pack $ show err)
+  dialog MessageError "Error fetching votes"  (rwWindow rw) (Just $ errMsg err)
   widgetDestroy (rwWindow rw)
 
 dialog :: MessageType -> Text -> Window -> Maybe Text -> IO ()

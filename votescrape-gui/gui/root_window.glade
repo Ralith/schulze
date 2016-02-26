@@ -18,68 +18,92 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>
-              <object class="GtkGrid" id="scrape_page">
+              <object class="GtkBox" id="scrape_page">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="row_spacing">1</property>
-                <property name="column_spacing">5</property>
+                <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkEntry" id="from_entry">
+                  <object class="GtkGrid" id="grid1">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="tooltip_markup" translatable="yes">URI to the post &lt;b&gt;before&lt;/b&gt; counting should begin
+                    <property name="can_focus">False</property>
+                    <property name="column_spacing">4</property>
+                    <child>
+                      <object class="GtkEntry" id="from_entry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_markup" translatable="yes">URI to the post &lt;b&gt;before&lt;/b&gt; counting should begin
 This should usually be the update post</property>
-                    <property name="hexpand">True</property>
-                    <property name="activates_default">True</property>
-                    <property name="caps_lock_warning">False</property>
-                    <property name="placeholder_text" translatable="yes">http://forums.somethingawful.com/showthread.php?threadid=3764408#post456325980</property>
-                    <property name="input_purpose">url</property>
+                        <property name="hexpand">True</property>
+                        <property name="activates_default">True</property>
+                        <property name="caps_lock_warning">False</property>
+                        <property name="placeholder_text" translatable="yes">http://forums.somethingawful.com/showthread.php?threadid=3764408#post456325980</property>
+                        <property name="input_purpose">url</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="to_entry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">Optional URI to the last post to be counted
+If blank, all remaining posts are scraped</property>
+                        <property name="hexpand">True</property>
+                        <property name="activates_default">True</property>
+                        <property name="caps_lock_warning">False</property>
+                        <property name="placeholder_text" translatable="yes">http://forums.somethingawful.com/showthread.php?threadid=3764408#post456412761</property>
+                        <property name="input_purpose">url</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">From post</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label2">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">To post</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">0</property>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="to_entry">
+                  <object class="GtkButton" id="login_button">
+                    <property name="label" translatable="yes">Log In</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="tooltip_text" translatable="yes">Optional URI to the last post to be counted
-If blank, all remaining posts are scraped</property>
-                    <property name="hexpand">True</property>
-                    <property name="activates_default">True</property>
-                    <property name="caps_lock_warning">False</property>
-                    <property name="placeholder_text" translatable="yes">http://forums.somethingawful.com/showthread.php?threadid=3764408#post456412761</property>
-                    <property name="input_purpose">url</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label1">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="receives_default">True</property>
                     <property name="halign">end</property>
-                    <property name="label" translatable="yes">From post</property>
-                    <property name="ellipsize">middle</property>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="halign">end</property>
-                    <property name="label" translatable="yes">To post</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">1</property>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
               </object>
@@ -134,6 +158,7 @@ Each vote must begin with a voter name and end with an empty line</property>
             <property name="has_default">True</property>
             <property name="receives_default">False</property>
             <property name="halign">end</property>
+            <property name="relief">half</property>
           </object>
           <packing>
             <property name="expand">False</property>
