@@ -32,7 +32,8 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="tooltip_markup" translatable="yes">URI to the post &lt;b&gt;before&lt;/b&gt; counting should begin
-This should usually be the update post</property>
+This should usually be the update post
+&lt;b&gt;This post is not scraped&lt;/b&gt;</property>
                         <property name="hexpand">True</property>
                         <property name="activates_default">True</property>
                         <property name="caps_lock_warning">False</property>
@@ -98,6 +99,8 @@ If blank, all remaining posts are scraped</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Log into SA with your account
+This is necessary if the paywall's up</property>
                     <property name="halign">end</property>
                   </object>
                   <packing>

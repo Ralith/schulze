@@ -99,7 +99,7 @@ data VoteErr = HTTPErr Status | NeedsLogin
 
 errMsg :: VoteErr -> Text
 errMsg (HTTPErr status) = T.concat ["HTTP ", T.pack $ show (statusCode status), ": ", decodeUtf8With lenientDecode (statusMessage status ^. from strict) ^. strict]
-errMsg NeedsLogin = "Login required"
+errMsg NeedsLogin = "paywall detected: you must log in"
 
 getVotes :: CookieJar -> (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either VoteErr ([PostData Text], [String]))
 getVotes cookies start end =

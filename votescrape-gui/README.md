@@ -76,6 +76,7 @@ is selected, pressing the "Count" button will open a results window. Counts may 
   copying the URI it links to.
 - The "To post" field is optional. If left blank, all posts following the "From post" will be scraped.
 - The specific post identified by the "From post" link is not scraped. You should use the link to the post that opens voting.
+- When the paywall is up, you will need to log in using the "Log In" button to log in with your SA account. Your information is encrypted in transit to SomethingAwful and is not stored.
 
 #### File tab
 
