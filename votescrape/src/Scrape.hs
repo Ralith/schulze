@@ -25,7 +25,6 @@ import Data.Either
 import Data.List (isPrefixOf, tails)
 
 import Network.HTTP.Client
-import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Types.Status
 import Network.URI
 
@@ -101,14 +100,13 @@ errMsg :: VoteErr -> Text
 errMsg (HTTPErr status) = T.concat ["HTTP ", T.pack $ show (statusCode status), ": ", decodeUtf8With lenientDecode (statusMessage status ^. from strict) ^. strict]
 errMsg NeedsLogin = "paywall detected: you must log in"
 
-getVotes :: CookieJar -> (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either VoteErr ([PostData Text], [String]))
-getVotes cookies start end =
+getVotes :: Manager -> CookieJar -> (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either VoteErr ([PostData Text], [String]))
+getVotes mgr cookies start end =
   (_Right._1 %~ (\x -> (traverse %~ (getVote . (postBody %~ bolded . filterQuotes) . snd)) x ^.. folded._Just))
-  <$> getPosts cookies start end
+  <$> getPosts mgr cookies start end
 
-getPosts :: CookieJar -> (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either VoteErr ([(Post, PostData [Tag Text])], [String]))
-getPosts cookies start end = do
-  mgr <- newManager tlsManagerSettings
+getPosts :: Manager -> CookieJar -> (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO (Either VoteErr ([(Post, PostData [Tag Text])], [String]))
+getPosts mgr cookies start end = do
   allPosts <-
     case end of
       Nothing -> getPosts' mgr cookies (start ^. _1)

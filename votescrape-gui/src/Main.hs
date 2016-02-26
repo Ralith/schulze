@@ -20,7 +20,7 @@ import Data.IORef
 import Graphics.UI.Gtk
 
 import Network.HTTP.Types
-import Network.HTTP.Client (CookieJar, createCookieJar, newManager)
+import Network.HTTP.Client (Manager, CookieJar, createCookieJar, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 
 import System.IO.Error
@@ -60,7 +60,7 @@ main = do
     cs <- readIORef cookies
     fromJust $ lookup page
       [ (castToWidget scrapePage
-        , join $ scrape cs window <$> entryGetText fromEntry <*> entryGetText toEntry)
+        , join $ scrape manager cs window <$> entryGetText fromEntry <*> entryGetText toEntry)
       , (castToWidget filePage
         , parseFile window =<< fileChooserGetFilename filePage)
       ]
@@ -112,18 +112,18 @@ parseFile _ (Just file) = spawn $ \rw -> do
       info <- evaluate (process bs)
       pure $ fillResults rw info
 
-scrape :: CookieJar -> Window -> Text -> Text -> IO ()
-scrape _  w "" _ = dialog MessageError "Input error" w (Just "\"From post\" URI must be specified")
-scrape cs w x "" =
+scrape :: Manager -> CookieJar -> Window -> Text -> Text -> IO ()
+scrape _   _  w "" _ = dialog MessageError "Input error" w (Just "\"From post\" URI must be specified")
+scrape mgr cs w x "" =
   case parsePostURI (T.unpack x) of
     Left err -> dialog MessageError "Input error" w (Just . T.pack $ err)
-    Right x' -> spawn (\rw -> do rs <- fmap process' <$> getVotes cs x' Nothing
+    Right x' -> spawn (\rw -> do rs <- fmap process' <$> getVotes mgr cs x' Nothing
                                  seq (force (rs ^?_Right._1)) $ pure (displayResults rw rs))
-scrape cs w x y =
+scrape mgr cs w x y =
   case (parsePostURI (T.unpack x), parsePostURI (T.unpack y)) of
     (Left err, _) -> dialog MessageError "Input error" w (Just $ T.pack err)
     (_, Left err) -> dialog MessageError "Input error" w (Just $ T.pack err)
-    (Right x', Right y') -> spawn (\rw -> do rs <- fmap process' <$> getVotes cs x' (Just y')
+    (Right x', Right y') -> spawn (\rw -> do rs <- fmap process' <$> getVotes mgr cs x' (Just y')
                                              seq (force (rs ^?_Right._1)) $ pure (displayResults rw rs))
 
 process :: BallotSet -> Either Text (Text, Text, Text)

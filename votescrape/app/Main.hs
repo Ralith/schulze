@@ -15,7 +15,8 @@ import System.IO
 
 import Text.Parsec (parse, spaces)
 
-import Network.HTTP.Client (createCookieJar)
+import Network.HTTP.Client (createCookieJar, newManager)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Types.Status
 
 import Scrape
@@ -55,10 +56,10 @@ main = do
 
 begin :: (ThreadPage, Post) -> Maybe (ThreadPage, Post) -> IO ()
 begin start end = do
-  putStr "fetching posts..."
-  hFlush stdout
-  r <- getVotes (createCookieJar []) start end
-  putStrLn " done"
+  mgr <- newManager tlsManagerSettings
+  putStrLn "fetching posts..."
+  r <- getVotes mgr (createCookieJar []) start end
+  putStrLn "done"
   process r
 
 process :: Either VoteErr ([(PostData Text)], [String]) -> IO ()
