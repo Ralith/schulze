@@ -6,6 +6,7 @@ import Control.Exception
 import Control.Lens hiding (set)
 import Control.Monad
 
+import Data.ByteString (ByteString)
 import qualified Data.CaseInsensitive as CI
 import Data.FileEmbed
 import qualified Data.Map as M
@@ -13,6 +14,8 @@ import Data.Maybe (fromJust)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
+import Data.Text.Encoding.Error (lenientDecode)
+import Data.Text.Lazy.Encoding (decodeUtf8With)
 import qualified Data.Text.IO as T
 import qualified Data.Vector as V
 import Data.IORef
@@ -33,6 +36,9 @@ import VoteCount.Condorcet
 import VoteCount.Format
 
 import VoteCount.Parse (ballotFile, anonBallot)
+
+safeDecode :: ByteString -> Text
+safeDecode = view strict . decodeUtf8With lenientDecode . view (from strict)
 
 main :: IO ()
 main = do
@@ -85,7 +91,8 @@ main = do
         res <- login manager uname pass
         postGUIAsync $ do
           case res of
-            Left err -> dialog MessageError (T.append "HTTP error " (T.pack (show (statusCode err)))) (castToWindow d) (Just . T.pack $ show err)
+            Left (Status { statusCode = 401 }) -> dialog MessageError "Login failed" (castToWindow d) (Just "Invalid credentials")
+            Left err -> dialog MessageError (T.append "HTTP error " (T.pack (show (statusCode err)))) (castToWindow d) (Just . safeDecode $ statusMessage err)
             Right cs -> writeIORef cookies cs
           widgetDestroy d
 
