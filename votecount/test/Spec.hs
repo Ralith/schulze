@@ -14,7 +14,8 @@ import qualified VoteCount.Parse as Parse
 
 example :: Relation -> [Char] -> [(Int, [[Char]])] -> Assertion
 example rel expected vs =
-  assertEqual "vote winner mismatch" expected (map (\(Option i) -> options !! fromIntegral i) $ judge rel optCount prefs)
+  assertEqual "vote winner mismatch" expected (map (\(Option i) -> options !! fromIntegral i) . winners [Option 0 .. Option (fromIntegral $ length options - 1)]
+                                               $ judge rel optCount prefs)
   where
     options = S.toList . S.fromList . concat . concatMap snd $ vs
     optCount = fromIntegral (length options) :: Word

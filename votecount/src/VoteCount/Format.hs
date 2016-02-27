@@ -84,14 +84,5 @@ printResults r =
 
 formatResult :: BallotSet -> Question -> Word -> Count -> Text
 formatResult r q opts c =
-  case judge winning opts c of
-    [] -> "no votes"
-    xs -> T.concat [ T.intercalate ", " (map (optionName r q) xs)
-                     , let winningSize = fromIntegral $ length xs in
-                       if opts > winningSize
-                          then T.append "; " $
-                               formatResult (foldr (Ballot.dropOption q) r xs) q
-                                            (opts - fromIntegral winningSize)
-                                            (foldr Condorcet.dropOption c xs)
-                          else ""
-                     ]
+  T.intercalate "; " . map (T.intercalate ", " . map (optionName r q))
+  $ rank [Option 0 .. Option (opts-1)] (judge winning opts c)
