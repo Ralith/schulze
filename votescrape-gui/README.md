@@ -136,3 +136,8 @@ option, instead of a third option C that they greatly prefer but perceive as unl
 voting method such as the Schulze method, the voter can express his true preference for C without sacrificing their
 ability to support B in favor of A. This remains true no matter how many or how few other voters are making use of the
 opportunity to express complex preferences.
+
+The Schulze method satisfies the Condorcet criterion, which requires that if an option would win a vote individually
+against every other option it must win the full vote. A corollary to this is that if all voters place votes for a single
+option, the same winner will be selected by the Schulze method as would be selected by a simple plurality method. This
+means that the counting utility may be applied to votes for which selection of winner by plurality is desired.
